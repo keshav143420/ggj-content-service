@@ -1,19 +1,36 @@
-import express, { Express, Request, Response } from 'express';
-import postRoutes from './routes/post.routes';
+import 'reflect-metadata';
+import { app } from './app';
+import { AppDataSource } from './data-source';
+import { connectProducer, disconnectProducer } from './kafka/producer';
 
-const app: Express = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+const startServer = async () => {
+  try {
+    await AppDataSource.initialize();
+    console.log('Database connected successfully.');
 
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'OK' });
-});
+    await connectProducer();
 
-app.use('/api/posts', postRoutes);
+    const server = app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
 
-app.listen(port, () => {
-  console.log(`Content Service is running on port ${port}`);
-});
+    const shutdown = async () => {
+      console.log('Shutting down server...');
+      server.close();
+      await disconnectProducer();
+      await AppDataSource.destroy();
+      process.exit(0);
+    };
 
-export default app;
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
+
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
