@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ggj-content-service
+  labels:
+    app: ggj-content-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ggj-content-service
+  template:
+    metadata:
+      labels:
+        app: ggj-content-service
+    spec:
+      containers:
+      - name: ggj-content-service
+        image: ggj-content-service
+        ports:
+        - containerPort: 3000
